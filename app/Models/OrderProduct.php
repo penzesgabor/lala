@@ -14,6 +14,7 @@ class OrderProduct extends Model
         'product_id',
         'height',
         'width',
+        'divider_id',
         'divider_length',
         'dividercross',
         'dividerend',
@@ -27,6 +28,7 @@ class OrderProduct extends Model
         'notes',
         'barcode', 
         'customer_product_name', 
+        'randomid',
     ];
 
     // Relationships

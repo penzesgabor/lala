@@ -20,8 +20,11 @@ use App\Http\Controllers\TrolleyController;
 use App\Http\Controllers\CuttingListController;
 use App\Http\Controllers\CustomerImportController;
 
+use App\Http\Controllers\AdminProductController;
 
-
+Route::get('/admin', [AdminProductController::class, 'index']);
+Route::get('/admin/configurable-products', [AdminProductController::class, 'getConfigurableProducts']);
+Route::get('/admin/configurable-products/components', [AdminProductController::class, 'getConfigurableProductComponents']);
 
 
 Route::middleware(['auth', 'role:Admin'])->group(function () {
@@ -47,6 +50,7 @@ Route::resource('base_material_types', BaseMaterialTypeController::class);
 Route::resource('product_groups', ProductGroupController::class);
 ##Product
 
+Route::post('/products/calculate-price', [ProductController::class, 'getPrice'])->name('products.calculate-price');
 
 
 Route::resource('product-mappings', ProductMappingController::class);
@@ -67,10 +71,12 @@ Route::resource('vats', VatController::class);
 Route::resource('orders', OrderController::class);
 Route::get('/customers/{customer}/delivery-addresses', [CustomerController::class, 'getDeliveryAddresses']);
 Route::get('orders/{order}/products/create', [OrderProductController::class, 'create'])->name('order.products.create');
-Route::post('orders/{order}/products', [OrderProductController::class, 'store'])->name('order.products.store');
 Route::get('/orders/{order}/productsshow', [OrderProductController::class, 'productsshow'])->name('orders.productsshow');
 Route::get('orders/{order}/products/{product}/edit', [OrderProductController::class, 'edit'])->name('order.products.edit');
-Route::put('orders/{order}/products/{product}', [OrderProductController::class, 'update'])->name('order.products.update');
+Route::post('/orders/{order}/products', [OrderProductController::class, 'store'])->name('order.products.store');
+//Route::put('/orders/{order}/products/{product}', [OrderProductController::class, 'update'])->name('order.products.update');
+Route::put('/orders/{order}/products/update-group/{randomid}', [OrderProductController::class, 'update'])->name('order.products.update');
+
 #Route::delete('orders/{order}/products/{product}', [OrderProductController::class, 'destroy'])->name('order.products.destroy');
 Route::delete('/orders/{order}/products/{product}', [OrderProductController::class, 'destroy'])->name('order.products.destroy');
 Route::post('/orders/{order}/products/delete-group', [OrderProductController::class, 'deleteGroup'])->name('order.products.deleteGroup');
@@ -89,7 +95,7 @@ Route::post('customers/{customer}/orders', [OrderController::class, 'storeFromCu
 Route::get('/orders/import/{customer_id}', [OrderImportController::class, 'showImportForm'])->name('orders.import.form');
 Route::post('/orders/import', [OrderImportController::class, 'processImport'])->name('orders.import.process');
 Route::post('/orders/import/match', [OrderImportController::class, 'saveMatching'])->name('orders.import.match');
-Route::post('/orders/import/save', [OrderImportController::class, 'saveOrder'])->name('orders.import.save');
+#Route::post('/orders/import/save', [OrderImportController::class, 'saveOrder'])->name('orders.import.save');
 Route::get('/orders/import/third-step/{order_id}', [OrderImportController::class, 'thirdStepForm'])->name('orders.import.third-step');
 Route::post('/orders/import/third-step/{order_id}', [OrderImportController::class, 'saveThirdStep'])->name('orders.import.save-third-step');
 

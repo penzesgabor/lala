@@ -3,7 +3,7 @@
 @section('title', 'Match Products')
 
 @section('content_header')
-    <h1>Match Products</h1>
+    <h1>Találatok</h1>
 @endsection
 
 @section('content')
@@ -28,7 +28,7 @@
                         <th>Matched Product</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody> 
                     @foreach ($products as $product)
                         @php
                             $isMatched = isset($matchedProducts[$product['customer_product_name']]);

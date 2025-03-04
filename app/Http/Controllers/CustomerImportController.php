@@ -19,6 +19,7 @@ class CustomerImportController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt',
         ]);
     
+        dd($request);
         $file = $request->file('csv_file');
        # $data = array_map('str_getcsv', file($file->getRealPath()));
     

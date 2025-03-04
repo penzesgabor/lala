@@ -2,13 +2,10 @@
 
 @section('title', 'Products')
 
-@section('content_header')
-    <h1>Products</h1>
-@endsection
-
 @section('content')
 <div class="card card-danger">
     <div class="card-header">
+        
         <a href="{{ route('products.create') }}" class="btn btn-primary">Új termék felvitele </a>
         <!-- Trigger Button for Price Update Modal -->
         <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#priceUpdateModal">
@@ -73,7 +70,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Mégdem</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Mégsem</button>
                     <button type="submit" class="btn btn-warning">Mehet</button>
                 </div>
             </form>

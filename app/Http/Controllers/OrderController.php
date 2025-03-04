@@ -123,7 +123,7 @@ class OrderController extends Controller
     }
 
 
-    public function printOrder($id)
+    public function printOrdera($id)
     {
         $order = Order::with('customer')->findOrFail($id);
 
@@ -163,7 +163,7 @@ class OrderController extends Controller
                 $this->SetFont( 'Arial','B',15);
                 $this->SetY(10);
                 $this->SetX(80);
-                $this->Cell(30,10,iconv( 'utf-8','ISO- 8859-2','Rendelésfelvételi lap'),0,0,'C');
+                $this->Cell(34,10,iconv( 'utf-8','ISO- 8859-2','Rendelésfelvételi lap'),0,0,'C');
                 $this->SetY(10);
                 $this->SetX(150);
                 $this->Ln();
@@ -244,10 +244,10 @@ class OrderController extends Controller
                 $this->SetX(105);
                 $this->Cell(25, 6, $this->order->ordering_date, 1, 0, 'C');
                 $this->SetY(50);
-                $this->SetX(130);
+                $this->SetX(135);
                 $this->Cell(35, 6, iconv('utf-8', 'ISO-8859-2', 'Szállítási határidö'), 1, 0, 'L');
                 $this->SetY(50);
-                $this->SetX(165);
+                $this->SetX(175);
                 $this->Cell(25, 6, $this->order->delivery_date, 1, 0, 'C');
                 $this->Ln();
                 $this->SetFont('Arial', 'B', 8);
@@ -274,7 +274,7 @@ class OrderController extends Controller
                 $this->SetX(150);
                 $this->Cell(20, 6, iconv('utf-8', 'ISO-8859-2', 'Nettó ár'), 1, 0, 'C');
                 $this->SetY($y);
-                $this->SetX(170);
+                $this->SetX(180);
                 $this->Cell(20, 6, iconv('utf-8', 'ISO-8859-2', 'Bruttó ár'), 1, 0, 'C');
                 $this->Ln();
 
@@ -370,6 +370,182 @@ class OrderController extends Controller
         $pdf->Body();
         $pdf->Output('I', "order_{$order->id}.pdf"); 
          exit;
+    }
+
+    public function printOrder($id) {
+
+        $order = Order::with('customer')->findOrFail($id);
+
+        $groupedProducts = $order->products->groupBy(function ($product) {
+            return $product->width . '_' . $product->height . '_' . $product->product_id;
+        })->map(function ($group) {
+            $product = $group->first()->product; 
+    
+            return [
+                'width' => $group->first()->width,
+                'height' => $group->first()->height,
+                'product_name' => $product->name,
+                'vat' => $product->vat_id,
+                'total_quantity' => $group->count(),
+                'total_net_price' => $group->sum('agreed_price'),
+                'total_gross_price' => ($product->vat->value/100)*$group->sum('agreed_price')+$group->sum('agreed_price'),
+                'total_sqauremeter' => $group->sum('squaremeter'),
+                'total_flowmeter' => $group->sum('flowmeter'),
+                'price_per_squaremeter' => ($group->sum('agreed_price')/$group->count())/($group->sum('squaremeter')/$group->count()),
+            ];
+        });
+
+            $pdf = new class($order,$groupedProducts) extends Fpdi {
+            
+                private $order;
+                private $groupedProducts;
+
+                public function __construct($order, $groupedProducts)
+                {
+                    parent::__construct();
+                    $this->order = $order;
+                    $this->groupedProducts = $groupedProducts;
+                }
+
+                public function Header() { 
+                    # 
+                    $this->SetFont( 'Arial','B',15);
+                    $this->Text(77,10,iconv( 'utf-8','ISO- 8859-2','Rendelésfelvételi lap'));
+                    $this->Rect(10,15,95,35);
+                    $this->Rect(105,15,95,35);
+                    #  
+                    $this->Rect(10,50,32,7);
+                    $this->Rect(42,50,31,7);
+                    $this->Rect(73,50,32,7);
+                    $this->Rect(105,50,31,7);
+                    $this->Rect(136,50,32,7);
+                    $this->Rect(168,50,32,7);
+                    # 
+                    $this->Rect(10,57,10,7);
+                    $this->Rect(20,57,80,7);
+                    $this->Rect(100,57,17,7);
+                    $this->Rect(117,57,17,7);
+                    $this->Rect(134,57,14,7);
+                    $this->Rect(148,57,16,7);
+                    $this->Rect(164,57,18,7);
+                    $this->Rect(182,57,18,7);
+                    
+                    $this->SetFont( 'Arial','B',9);
+                    $this->Text(11,20,iconv( 'utf-8','ISO- 8859-2','Szállító'));
+                    $this->Text(106,20,iconv( 'utf-8','ISO- 8859-2','Megrendelő'));
+                    $this->SetFont('Arial', '', 10);
+                    $this->Text(45, 20, 'Salgotherm Kft.');
+                    $this->Text(45, 28, '1138 Budapest');
+                    $this->Text(45, 36, 'Viza u. 7/B 6.em./261 .');
+                    $this->Text(45, 44, iconv('utf-8', 'ISO-8859-2', 'Adószám: 14741339-2-41'));
+                    $this->Text(128, 20, iconv('utf-8', 'ISO-8859-2', $this->order->customer->name));
+                    $this->Text(128, 28, $this->order->customer->zip . "   " . iconv('utf-8', 'ISO-8859-2', $this->order->customer->city));
+                    $this->Text(128, 36, iconv('utf-8', 'ISO-8859-2', $this->order->customer->street));
+                    $this->Text(128, 44, iconv('utf-8', 'ISO-8859-2', 'Adószám:'.$this->order->customer->tax_number));
+                    #########
+                    $this->SetFont('Arial', '', 8);
+                    $this->Text(11, 54, iconv('utf-8', 'ISO-8859-2', 'Megrendelés száma'));
+                    $this->Text(53, 54, $this->order->id);
+                    $this->Text(74, 54, iconv('utf-8', 'ISO-8859-2', 'Megrendelés dátuma'));
+                    $this->Text(111, 54, $this->order->ordering_date);
+                    $this->Text(137, 54, iconv('utf-8', 'ISO-8859-2', 'Szállítási határidö'));
+                    $this->Text(174, 54, $this->order->delivery_date);
+                  
+                    $this->SetFont('Arial', '', 6);
+                    $this->Text(11, 61, iconv('utf-8', 'ISO-8859-2', 'Sorszám'));
+                    $this->Text(51, 61, iconv('utf-8', 'ISO-8859-2', 'Megnevezés'));
+                    $this->Text(106, 61, iconv('utf-8', 'ISO-8859-2', 'Méret'));
+                    $this->Text(121, 61, iconv('utf-8', 'ISO-8859-2', 'Mennyiség'));
+                    $this->Text(139, 61, 'm2');
+                    $this->Text(153, 61, 'Ft/m2');
+                    $this->Text(169, 61, iconv('utf-8', 'ISO-8859-2', 'Nettó ár'));
+                    $this->Text(185, 61, iconv('utf-8', 'ISO-8859-2', 'Bruttó ár'));
+
+                    #######
+                }
+
+                public function Body() { 
+                    $total_gross_price = 0;
+                    $y=68;
+                    $index = 1;
+                    $this->SetFont('Arial', '', 7);
+                    $this->Rect(10,57,190,208);
+                    foreach ($this->groupedProducts as $group) {
+                        $this->Text(11, $y, "#".$index);
+                        $this->Text(20, $y, iconv( 'utf-8','ISO- 8859-2',substr($group['product_name'],0,71)));
+                        $this->Text(103, $y, $group['width']  . ' x '. $group['height'] );
+                        $this->Text(122, $y, $group['total_quantity'] . " db");
+                        $this->Text(140, $y, number_format($group['total_sqauremeter'], 2,'.',' '));
+                        $this->Text(151, $y, number_format($group['price_per_squaremeter'], 0,'.',' '));
+                        $this->Text(170, $y, number_format($group['total_net_price'], 0,'.',' '));
+                        $this->Text(188 , $y, number_format($group['total_gross_price'], 0,'.',' '));
+                        $y+=4;
+                        $index+=1;
+                        $total_gross_price += $group['total_gross_price'];
+                        
+                        if ($y >= 240) {
+                            $y = 68;
+                            $this->addPage();
+                         }
+                        }
+        
+                         $this->Rect(10,265,35,14);
+                         $this->Rect(45,265,25,7);
+                         $this->Rect(70,265,25,7);
+                         $this->Rect(95,265,25,7);
+                         $this->Rect(120,265,40,7);
+                         $this->Rect(160,265,40,7);
+                        
+                         $this->Rect(45,272,25,7);
+                         $this->Rect(70,272,25,7);
+                         $this->Rect(95,272,25,7);
+                         $this->Rect(120,272,40,7);
+                         $this->Rect(160,272,40,7);
+
+                         $this->Text(50, 262, iconv('utf-8', 'ISO-8859-2', 'Üzemvezetö:'));
+                         $this->Text(130, 262, iconv('utf-8', 'ISO-8859-2', 'Vállalkozó:'));
+                       
+                         $this->SetFont('Arial', 'B', 10);
+                         $this->Text(11, 273, iconv('utf-8', 'ISO-8859-2', 'Összesen'));
+                       
+                         $this->SetFont('Arial', 'B', 8);
+                         $this->Text(52, 269, iconv('utf-8', 'ISO-8859-2', 'Darab'));
+                         $this->Text(80, 269, 'M2');
+                         $this->Text(105, 269, 'FM');
+                         $this->Text(130, 269, iconv('utf-8', 'ISO-8859-2', 'Nettó összeg'));
+                         $this->Text(169, 269, iconv('utf-8', 'ISO-8859-2', 'Bruttó összeg'));
+                        
+                         $this->Text(55, 276, $this->order->products->count());
+                         $this->Text(80, 276, number_format($this->order->products->sum('squaremeter'), 2, ".", ""));
+                         $this->Text(105, 276, number_format($this->order->products->sum('flowmeter'), 2, ".", ""));
+                         $this->Text(130, 276, number_format($this->order->products->sum('agreed_price'), 0, ".", " ") . " Ft");
+                         $this->Text(169, 276, number_format($total_gross_price, 0, ".", " ") . " Ft");
+ 
+                  
+
+                }
+
+                public function Footer() { 
+                    $this->SetFont('Arial', 'I', 8);
+                    #$this->Rect(10,257,190,35);
+                    
+                   
+                    
+                    $this->Text(21, 284, iconv('utf-8', 'ISO-8859-2', 'A mai napon az alábbi megrendeléseket fogadtuk el. Ezek a termékek minőségileg megfelelnek az EMI a-174/97 elöírásainak,'));
+                    $this->Text(71, 287, iconv('utf-8', 'ISO-8859-2', 'melyekre 5 év garanciát vállalunk.'));
+                    $this->SetY(285);
+                    $this->SetX(90);
+                    $this->Cell(10, 10, $this->PageNo() . '/{nb} oldal ', 0, 0, 'C');
+
+                }
+            };
+
+
+            $pdf->AliasNbPages();
+            $pdf->AddPage();
+            $pdf->Body();
+            $pdf->Output('I', "order_{$order->id}.pdf"); 
+            exit;
     }
 
  #   public function printEtikett($id)

@@ -13,8 +13,14 @@
     <!-- Custom CSS -->
     <style>
         body {
-            background-color: #f4f6f9;
+            background-size: cover;
         }
+        .login-box {
+        background: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
     </style>
 </head>
 <body class="hold-transition login-page">
@@ -22,10 +28,10 @@
         <!-- Login Card -->
         <div class="card card-outline card-primary">
             <div class="card-header text-center">
-                <a href="#" class="h1"><b>Admin</b>LTE</a>
+                <a href="#" class="h1"><b>Salgotherm</b> Kft.</a>
             </div>
             <div class="card-body">
-                <p class="login-box-msg">Sign in to start your session</p>
+                <p class="login-box-msg">Bejelentkezés</p>
 
                 <!-- Login Form -->
                 <form action="{{ route('login') }}" method="POST">
@@ -39,7 +45,7 @@
                         </div>
                     </div>
                     <div class="input-group mb-3">
-                        <input type="password" name="password" class="form-control" placeholder="Password" required>
+                        <input type="password" name="password" class="form-control" placeholder="Jelszó" required>
                         <div class="input-group-append">
                             <div class="input-group-text">
                                 <span class="fas fa-lock"></span>
@@ -50,24 +56,14 @@
                         <div class="col-8">
                             <div class="icheck-primary">
                                 <input type="checkbox" id="remember" name="remember">
-                                <label for="remember">Remember Me</label>
+                                <label for="remember">Emlékezz rám</label>
                             </div>
                         </div>
-                        <div class="col-4">
-                            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-primary">Bejelentkezés</button>
                         </div>
                     </div>
                 </form>
-
-                <!-- Links -->
-                <p class="mb-1">
-                    <a href="{{ route('password.request') }}">Forgot Password?</a>
-                </p>
-                @if (Route::has('register'))
-                <p class="mb-0">
-                    <a href="{{ route('register') }}" class="text-center">Register a new account</a>
-                </p>
-                @endif
             </div>
         </div>
     </div>

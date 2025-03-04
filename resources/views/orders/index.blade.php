@@ -42,16 +42,16 @@
                         <td>{{ $order->isbilled ? 'Igen' : 'Nem' }}</td>
                         <td>{{ $order->isdelivered ? 'Igen' : 'Nem' }}</td>
                         <td>
-                            <a href="{{ route('orders.show', $order) }}" class="btn btn-info btn-sm">View</a>
-                            <a href="{{ route('orders.edit', $order) }}" class="btn btn-warning btn-sm">Edit</a>
+                            <a href="{{ route('orders.show', $order) }}" class="btn btn-info btn-sm">Megnézem</a>
+                            <a href="{{ route('orders.edit', $order) }}" class="btn btn-warning btn-sm">Szerkesztés</a>
                             <a href="/orders/{{  $order->id }}/products/create" class="btn btn-info btn-sm">Termékek</a>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    Print Options
+                                <button type="button" class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Nyomtatási lehetöségek
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a href="{{ route('orders.print', $order->id) }}" class="dropdown-item">Print Order</a>
-                                    <a href="{{ route('orders.print.etikett', $order->id) }}" class="dropdown-item">Print Etikett</a>
+                                    <a href="{{ route('orders.print', $order->id) }}" class="dropdown-item">Megrendelés nyomtatása</a>
+                                    <a href="{{ route('orders.print.etikett', $order->id) }}" class="dropdown-item">Etikett nyomtatás</a>
                                 </div>
                             </div>
                         </td>

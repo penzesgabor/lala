@@ -13,32 +13,31 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
-            @if ($orderProducts->isNotEmpty())
-                <h3>Products Missing Prices</h3>
-                <form action="{{ route('orders.import.save-third-step', $order->id) }}" method="POST">
-                    @csrf
+            <form action="{{ route('orders.import.save-third-step', $order->id) }}" method="POST">
+                @csrf
+
+                @if ($orderProducts->isNotEmpty())
+                    <h3>Nincs termékár rögzítve</h3>
 
                     <input type="hidden" name="delivery_date" value="1999-10-10">
-                    <input type="hidden" name="delivery_address_id"
-                        value="{{ old('delivery_address_id', $defaultDeliveryAddressId) }}">
-                    <input type="hidden" name="production_date"
-                        value="1999-10-10">
+                    <input type="hidden" name="delivery_address_id" value="{{ old('delivery_address_id', $defaultDeliveryAddressId) }}">
+                    <input type="hidden" name="production_date" value="1999-10-10">
 
                     <table class="table table-bordered">
                         <thead>
                             <tr>
                                 <th>Product ID</th>
-                                <th>Height</th>
-                                <th>Width</th>
-                                <th>Square Meter</th>
-                                <th>Customer Product Name</th>
-                                <th>Manual Price</th>
+                                <th>Magasság</th>
+                                <th>Sélesség</th>
+                                <th>m2</th>
+                                <th>Ügyfél termék név</th>
+                                <th>Kézi ár</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($orderProducts as $orderProduct)
                                 <tr>
-                                    <td>{{ $orderProduct->product_id }}</td>
+                                    <td>{{ $orderProduct->product->name }}</td>
                                     <td>{{ $orderProduct->height }}</td>
                                     <td>{{ $orderProduct->width }}</td>
                                     <td>{{ $orderProduct->squaremeter }}</td>
@@ -51,36 +50,34 @@
                             @endforeach
                         </tbody>
                     </table>
-                    <button type="submit" class="btn btn-primary">Save Prices</button>
-               @else
-                <p>All products have prices.</p>
-            @endif
+                @else
+                    <p>Árak rendben.</p>
+                @endif
 
-            <h3>Finalize Delivery Details</h3>
-            
+                <h3>Szállítási adatok</h3>
+
                 <div class="form-group">
-                    <label for="delivery_date">Delivery Date</label>
+                    <label for="delivery_date">Szállítás dátuma</label>
                     <input type="date" name="delivery_date" id="delivery_date" class="form-control" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="delivery_address_id">Delivery Address</label>
+                    <label for="delivery_address_id">Szállítási cím</label>
                     <select name="delivery_address_id" id="delivery_address_id" class="form-control" required>
-                        <option value="" disabled selected>Select a Delivery Address</option>
+                        <option value="" disabled selected>Szállítási cím</option>
                         @foreach ($deliveryAddresses as $address)
-                            <option value="{{ $address->id }}">{{ $address->city }}, {{ $address->street }},
-                                {{ $address->zip }}</option>
+                            <option value="{{ $address->id }}">{{ $address->city }}, {{ $address->street }}, {{ $address->zip }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="production_date">Production Date</label>
+                    <label for="production_date">Gyártásbaadás dátuma</label>
                     <input type="date" name="production_date" id="production_date" class="form-control" required>
                 </div>
 
-                <button type="submit" class="btn btn-success">Finalize Order</button>
-            </form>
+                <button type="submit" class="btn btn-success">Mentés</button>
+            </form> 
         </div>
     </div>
 @endsection

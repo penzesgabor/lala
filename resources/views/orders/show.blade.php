@@ -62,9 +62,10 @@
                     <th>Magasság</th>
                     <th>Szélesség</th>
                     <th>Termék neve</th>
+                    <th>m2</th>
+                    <th>Ár</th>
                     <th>Partner kód</th>
                     <th>Mennyiség</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -76,16 +77,11 @@
                         <td>{{ $firstItem->height }}</td>
                         <td>{{ $firstItem->width }}</td>
                         <td>{{ $firstItem->product->name ?? 'N/A' }}</td>
+                        <td>{{ $firstItem->squaremeter ?? 'N/A' }}</td>
+                        <td>{{ $firstItem->agreed_price ?? 'N/A' }}</td>
                         <td>{{ $firstItem->customers_order_text }}</td>
                         <td>{{ $items->count() }}</td>
-                        <td>
-                            <a href="{{ route('order.products.edit', [$order, $firstItem]) }}" class="btn btn-warning btn-sm">Módosítás</a>
-                            <form action="{{ route('order.products.destroy', [$order, $firstItem]) }}" method="POST" style="display:inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">Törlés</button>
-                            </form>
-                        </td>
+                       
                     </tr>
                 @endforeach
             </tbody>

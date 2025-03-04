@@ -44,23 +44,24 @@
                                 <a href="{{ route('customers.orders.index', $customer->id) }}"
                                     class="btn-sm btn-primary">Megrendelések</a>
 
-                                <button class="btn-sm btn-warning dropdown-toggle" type="button" id="actionDropdown"
+                                <button class=" btn btn-warning dropdown-toggle btn-sm" type="button" id="actionDropdown"
                                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     További menü
                                 </button>
+                               
                                 <div class="dropdown-menu" aria-labelledby="actionDropdown">
                                     <a href="{{ route('orders.import.form', ['customer_id' => $customer->id]) }}"
-                                        class="btn-sm btn-warning">
+                                        class="btn btn-warning btn-sm ">
                                         Rendelés importálása
                                     </a>
 
                                     <a href="/customers/{{ $customer->id }}/prices" class="btn-sm btn-primary">Árak</a>
-                                    <button type="button" class="btn-sm btn-danger" data-toggle="modal"
+                                    <button type="button" class="btn  btn-danger btn-sm" data-toggle="modal"
                                         data-target="#updatePriceModal" data-customer-id="{{ $customer->id }}">
                                         Globális ármodosítás
                                     </button>
                                     <a href="{{ route('customers.dashboard', $customer->id) }}"
-                                        class="btn-sm btn-info">Statisztika</a>
+                                        class="btn btn-info btn-sm">Statisztika</a>
                                 </div>
 
                             </td>

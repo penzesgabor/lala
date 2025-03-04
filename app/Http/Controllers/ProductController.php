@@ -27,47 +27,47 @@ class ProductController extends Controller
         $productGroups = ProductGroup::all();
         $baseMaterialTypes = BaseMaterialType::all();
         $simpleProducts = Product::where('type', 'simple')->get();
-        return view('products.create', compact('productGroups', 'baseMaterialTypes', 'simpleProducts','vats'));
+        return view('products.create', compact('productGroups', 'baseMaterialTypes', 'simpleProducts', 'vats'));
     }
 
-                
 
-        public function store(Request $request)
-        {
-            $rules = [
-                'name' => 'required|string|max:255',
-                'type' => 'required|in:simple,configurable',
-                'base_material_type_id' => 'nullable|exists:base_material_types,id',
-                'base_price' => 'nullable|numeric|min:0',
-                'vat_id' => 'nullable|exists:vats,id',
-                'product_group_id' => 'nullable|exists:product_groups,id',
-                'english_name' => 'nullable|string|max:255',
-                'weight_per_squaremeter' => 'nullable|numeric',
-                'liseccode' => 'nullable|string|max:255',
-            ];
-        
-            // Add validation rules for configurable products
-            if ($request->input('type') === 'configurable') {
-                $rules['components'] = 'required|array';
-                $rules['components.*.id'] = 'required|exists:products,id';
-                $rules['components.*.quantity'] = 'required|numeric|min:1';
-            }
-        
-            // Validate the request
-            $validated = $request->validate($rules);
-        
-            // Create the product
-            $product = Product::create($validated);
-        
-            // Attach components if the product is configurable
-            if ($request->type === 'configurable') {
-                foreach ($validated['components'] as $component) {
-                    $product->components()->attach($component['id'], ['quantity' => $component['quantity']]);
-                }
-            }
-        
-            return redirect()->route('products.index')->with('success', 'Termék sikeresen hozzáadva.');
+
+    public function store(Request $request)
+    {
+        $rules = [
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:simple,configurable',
+            'base_material_type_id' => 'nullable|exists:base_material_types,id',
+            'base_price' => 'nullable|numeric|min:0',
+            'vat_id' => 'nullable|exists:vats,id',
+            'product_group_id' => 'nullable|exists:product_groups,id',
+            'english_name' => 'nullable|string|max:255',
+            'weight_per_squaremeter' => 'nullable|numeric',
+            'liseccode' => 'nullable|string|max:255',
+        ];
+
+        // Add validation rules for configurable products
+        if ($request->input('type') === 'configurable') {
+            $rules['components'] = 'required|array';
+            $rules['components.*.id'] = 'required|exists:products,id';
+            $rules['components.*.quantity'] = 'required|numeric|min:1';
         }
+
+        // Validate the request
+        $validated = $request->validate($rules);
+
+        // Create the product
+        $product = Product::create($validated);
+
+        // Attach components if the product is configurable
+        if ($request->type === 'configurable') {
+            foreach ($validated['components'] as $component) {
+                $product->components()->attach($component['id'], ['quantity' => $component['quantity']]);
+            }
+        }
+
+        return redirect()->route('products.index')->with('success', 'Termék sikeresen hozzáadva.');
+    }
 
     public function edit(Product $product)
     {
@@ -83,9 +83,9 @@ class ProductController extends Controller
                 'thickness' => preg_match('/^\d+/', $product->name, $match) ? $match[0] : 0,
             ];
         });
-        
 
-        return view('products.edit', compact('product', 'productGroups', 'baseMaterialTypes', 'simpleProducts','vats', 'simpleProducts2'));
+
+        return view('products.edit', compact('product', 'productGroups', 'baseMaterialTypes', 'simpleProducts', 'vats', 'simpleProducts2'));
     }
 
     public function update(Request $request, Product $product)
@@ -131,23 +131,63 @@ class ProductController extends Controller
     }
 
     public function updateAllBasePrices(Request $request)
-{
-    $validated = $request->validate([
-        'percentage' => 'required|numeric',
-    ]);
-
-    $percentageFactor = 1 + ($validated['percentage'] / 100);
-
-    foreach (Product::all() as $product) {
-        $product->update([
-            'base_price' => $product->base_price * $percentageFactor,
+    {
+        $validated = $request->validate([
+            'percentage' => 'required|numeric',
         ]);
+
+        $percentageFactor = 1 + ($validated['percentage'] / 100);
+
+        foreach (Product::all() as $product) {
+            $product->update([
+                'base_price' => $product->base_price * $percentageFactor,
+            ]);
+        }
+
+        return redirect()->route('products.index')
+            ->with('success', 'Alapár frissítve.');
     }
 
-    return redirect()->route('products.index')
-        ->with('success', 'Alapár frissítve.');
-}
+    public function calculateConfigurableProductPrice(Product $product, $dimensions)
+    {
+        $totalPrice = 0;
+        $width = $dimensions['width'];
+        $height = $dimensions['height'];
+        $flowMeter = 2 * ($width + $height) / 1000; // Convert to meters for flow meter pricing
+        $squareMeter = ($width * $height) / 1e6;   // Square meter
 
+        foreach ($product->components as $component) {
+            $basePrice = $component->baseMaterial->base_price;
+            $customerPrice = $component->product->customerPrices()
+                ->where('customer_id', auth()->id())
+                ->value('custom_price') ?? $basePrice;
 
+            switch ($component->baseMaterial->type) {
+                case 'üveg':
+                    $totalPrice += $customerPrice * $squareMeter;
+                    break;
+                case 'távtartó':
+                case 'áloszto':
+                    $totalPrice += $customerPrice * $flowMeter;
+                    break;
+                case 'öt':
+                    $totalPrice += $customerPrice; // Assuming 'öt' priced per piece
+                    break;
+            }
+        }
+
+        return $totalPrice;
+    }
+
+    public function getPrice(Request $request)
+    {
+        $product = Product::with(['components.baseMaterial', 'customerPrices'])->find($request->product_id);
+        $price = $this->calculateConfigurableProductPrice($product, $request->all());
+
+        return response()->json([
+            'success' => true,
+            'price' => $price
+        ]);
+    }
 
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use DB;
 
 class OrderImportController extends Controller
 {
@@ -20,15 +21,22 @@ class OrderImportController extends Controller
 
     public function processImport(Request $request)
     {
+        #dd($request);
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt',
             'customer_id' => 'required|exists:customers,id',
         ]);
 
-        $file = $request->file('file');
+        
+        $file = $request->file('csvfile');
+
         $rows = array_map(function ($line) {
-            return str_getcsv($line, ';');
+            $convertedLine = mb_convert_encoding($line, 'UTF-8', 'Windows-1252');
+            return str_getcsv($convertedLine, ';');
         }, file($file->getRealPath()));
+
+        $rows = array_filter($rows, function ($row) {
+            return array_filter($row); 
+        });
 
         $header = [
             'customer_reference_id',
@@ -48,8 +56,9 @@ class OrderImportController extends Controller
             'position7',
             'position8',
             'barcode',
+            'vmi',
         ];
-
+        #dd($rows);
         $products = collect($rows)->map(function ($row) use ($header) {
             return array_combine($header, array_slice($row, 0, count($header)));
         });
@@ -108,30 +117,67 @@ class OrderImportController extends Controller
 
 
         $products = collect(json_decode($request->products, true));
-
+        #dd($request);
+        
         foreach ($products as $productData) {
-
             $productId = $request->matches[$productData['customer_product_name']] ?? null;
-
+        
             if ($productId) {
-
                 $squareMeter = ($productData['width'] * $productData['height']) / 1e6;
                 $flowMeter = (2 * ($productData['width'] + $productData['height'])) / 1000;
-                $basePrice = \App\Models\CustomerProductPrice::where('customer_id', $order->customer_id)
-                ->where('product_id', $productId)
-                ->value('custom_price') 
-                ?? \App\Models\Product::find($productId)->base_price 
-                ?? 0;
-
+        
+                // Check if the product is configurable
+                $product = \App\Models\Product::with('components')->find($productId);
+                $isConfigurable = $product->type === "configurable";
+                $totalPrice = 0;
+                #dd($product);
+                if ($isConfigurable) {
+                    // Get all components
+                    $componentPrices = DB::table('configurable_product_components as cpc')
+                    ->join('products as sp', 'cpc.simple_product_id', '=', 'sp.id')
+                    ->leftJoin('customer_product_prices as cpp', function ($join) use ($order) {
+                        $join->on('cpp.product_id', '=', 'sp.id')
+                            ->where('cpp.customer_id', '=', $order->customer_id);
+                    })
+                    ->where('cpc.configurable_product_id', $productId)
+                    ->groupBy('sp.base_material_type_id') // Group by base material type
+                    ->havingRaw('SUM(COALESCE(cpp.custom_price, sp.base_price)) > 0') // Exclude groups with price 0 or NULL
+                    ->select(
+                        'sp.base_material_type_id',
+                        DB::raw('SUM(COALESCE(cpp.custom_price, sp.base_price)) as total_price')
+                    )
+                    ->get()
+                    ->pluck('total_price', 'base_material_type_id'); // Convert collection to key-value pairs
+    
+                    #dd($componentPrices);
+                    // Calculate price based on material type
+                    $squareMeterPrice = ($componentPrices->get(1, 0) * $squareMeter); // Material Type 1
+                    $flowMeterPrice = ($componentPrices->get(2, 0) * $flowMeter); // Material Type 2
+        
+                    // Total price
+                    $totalPrice = $squareMeterPrice + $flowMeterPrice;
+                } else {
+                    // Get base price for simple products
+                    $basePrice = \App\Models\CustomerProductPrice::where('customer_id', $order->customer_id)
+                        ->where('product_id', $productId)
+                        ->value('custom_price')
+                        ?? $product->base_price
+                        ?? 0;
+        
+                    $totalPrice = $squareMeter * $basePrice;
+                }
+        
+                $randomId = str_pad(mt_rand(1, 999999999), 9, '0', STR_PAD_LEFT);
                 \App\Models\OrderProduct::create([
                     'order_id' => $order->id,
+                    'randomid' => $randomId,
                     'product_id' => $productId,
                     'height' => $productData['height'],
                     'width' => $productData['width'],
                     'squaremeter' => $squareMeter,
                     'flowmeter' => $flowMeter,
-                    'calculated_price' => $squareMeter * $basePrice,
-                    'agreed_price' => $squareMeter * $basePrice,
+                    'calculated_price' => $totalPrice,
+                    'agreed_price' => $totalPrice,
                     'customers_order_text' => $productData['customer_order_text'],
                     'notes' => $productData['customer_reference_id'],
                     'barcode' => $productData['barcode'],
@@ -139,6 +185,7 @@ class OrderImportController extends Controller
                 ]);
             }
         }
+        
 
         return redirect()->route('orders.import.third-step', ['order_id' => $order->id])
             ->with('success', 'Order saved successfully. Proceed to finalize the order.');
@@ -175,7 +222,7 @@ class OrderImportController extends Controller
 
             if ($mappedProduct) {
                 $product = $mappedProduct->product;
-
+                
                 for ($i = 0; $i < $productData['quantity']; $i++) {
                     $squareMeter = ($productData['width'] * $productData['height']) / 1e6;
                     $flowMeter = (2 * ($productData['width'] + $productData['height'])) / 1000;
